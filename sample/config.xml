@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tvfetch>
+    <feed>http://example.com/rss.php</feed>
+    <path>/home/me/mywatchdir/</path>
+    <shows>
+        <show>
+            <regex>^My Fav Show S(\d{2})E(\d{2}) .*720p WEB.DL</regex>
+            <season>1</season>
+            <episode>5</episode>
+        </show>
+        <show>
+            <regex>^That New Show S(\d{2})E(\d{2}) .*1080 HDTV</regex>
+            <season>0</season>
+            <episode>0</episode>
+        </show>
+    </shows>
+</tvfetch>
