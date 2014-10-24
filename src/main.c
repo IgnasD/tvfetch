@@ -288,6 +288,9 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
     xmlNodePtr link_node;
     xmlChar *link_string;
     char numbuf[5];
+    time_t timestamp;
+    struct tm *timestruct;
+    char timebuf[30];
     
     for (show = settings->shows; show; show = show->next) {
         if (pcre_exec(show->regex_pcre, show->regex_pcre_extra,
@@ -320,7 +323,12 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
                     return 0;
                 }
                 link_string = xmlNodeGetContent(link_node->children);
-                printf("Fetching %s\n", title_string);
+                
+                time(&timestamp);
+                timestruct = localtime(&timestamp);
+                strftime(timebuf, 30, "%Y-%m-%d %H:%M:%S %Z", timestruct);
+                printf("[%s] Fetching \"%s\"\n", timebuf, title_string);
+                
                 download((char *)link_string, settings);
                 xmlFree(link_string);
             }
