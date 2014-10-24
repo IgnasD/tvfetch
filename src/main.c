@@ -23,8 +23,8 @@ struct settings_struct {
     int new_shows;
     xmlChar *feed_xml;
     char *feed;
-    xmlChar *path_xml;
-    char *path;
+    xmlChar *downloaddir_xml;
+    char *downloaddir;
     struct show_struct *shows;
 };
 
@@ -104,8 +104,10 @@ static int get_settings(const char *filename, struct settings_struct *settings) 
     settings->filename = filename;
     settings->xml_doc = NULL;
     settings->new_shows = 0;
+    settings->feed_xml = NULL;
     settings->feed = NULL;
-    settings->path = NULL;
+    settings->downloaddir_xml = NULL;
+    settings->downloaddir = NULL;
     settings->shows = NULL;
     
     xmlDocPtr xml_doc = xmlParseFile(filename);
@@ -130,13 +132,13 @@ static int get_settings(const char *filename, struct settings_struct *settings) 
     settings->feed_xml = xmlNodeGetContent(xml_node->children);
     settings->feed = (char *) settings->feed_xml;
     
-    xml_node = get_node_by_name(xml_node_main, "path");
+    xml_node = get_node_by_name(xml_node_main, "downloaddir");
     if (!xml_node) {
-        fprintf(stderr, "missing /tvfetch/path\n");
+        fprintf(stderr, "missing /tvfetch/downloaddir\n");
         return 0;
     }
-    settings->path_xml = xmlNodeGetContent(xml_node->children);
-    settings->path = (char *) settings->path_xml;
+    settings->downloaddir_xml = xmlNodeGetContent(xml_node->children);
+    settings->downloaddir = (char *) settings->downloaddir_xml;
     
     xml_node = get_node_by_name(xml_node_main, "shows");
     if (!xml_node) {
@@ -168,8 +170,8 @@ static void free_settings(struct settings_struct *settings) {
     if (settings->feed_xml) {
         xmlFree(settings->feed_xml);
     }
-    if (settings->path_xml) {
-        xmlFree(settings->path_xml);
+    if (settings->downloaddir_xml) {
+        xmlFree(settings->downloaddir_xml);
     }
     if (settings->xml_doc) {
         if (settings->new_shows) {
@@ -242,7 +244,7 @@ static int download(const char *url, struct settings_struct *settings) {
     CURLcode curl_result;
     char fullpath[200];
     
-    snprintf(fullpath, 200, "%s%i%i.torrent", settings->path, settings->new_shows, (int)time(NULL));
+    snprintf(fullpath, 200, "%s%i%i.torrent", settings->downloaddir, settings->new_shows, (int)time(NULL));
     
     file_desc = fopen(fullpath, "wb");
     if (!file_desc) {

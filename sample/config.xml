@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <tvfetch>
     <feed>http://example.com/rss.php</feed>
-    <path>/home/me/mywatchdir/</path>
+    <downloaddir>/home/me/mywatchdir/</downloaddir>
     <shows>
         <show>
             <regex>^My Fav Show S(\d{2})E(\d{2}) .*720p WEB.DL</regex>
