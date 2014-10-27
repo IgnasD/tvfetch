@@ -112,7 +112,7 @@ static int get_settings(const char *filename, struct settings_struct *settings) 
     
     xmlDocPtr xml_doc = xmlParseFile(filename);
     if (!xml_doc) {
-        fprintf(stderr, "Missing or malformed settings file\n");
+        //fprintf(stderr, "Missing or malformed settings file\n");
         return 0;
     }
     settings->xml_doc = xml_doc;
@@ -197,11 +197,12 @@ static size_t write_memory_curl_callback(void *ptr, size_t size, size_t nmemb, v
     size_t realsize = size * nmemb;
     struct data_struct *data = (struct data_struct *)userdata;
     
-    data->contents = realloc(data->contents, data->length + realsize + 1);
-    if(data->contents == NULL) {
+    void *block = realloc(data->contents, data->length + realsize + 1);
+    if(!block) {
         fprintf(stderr, "not enough memory (realloc returned NULL)\n");
         return 0;
     }
+    data->contents = block;
     
     memcpy(&(data->contents[data->length]), ptr, realsize);
     data->length += realsize;
@@ -222,13 +223,17 @@ static int get_feed(const char *url, struct data_struct *data) {
     
     curl_result = curl_easy_perform(curl_handle);
     
+    curl_easy_cleanup(curl_handle);
+    
     if(curl_result != CURLE_OK) {
         fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(curl_result));
-        curl_easy_cleanup(curl_handle);
+        if (data->contents) {
+            free(data->contents);
+        }
+        data->length = 0;
         return 0;
     }
     else {
-        curl_easy_cleanup(curl_handle);
         return 1;
     }
 }
@@ -260,15 +265,15 @@ static int download(const char *url, struct settings_struct *settings) {
     
     curl_result = curl_easy_perform(curl_handle);
     
+    curl_easy_cleanup(curl_handle);
+    
+    fclose(file_desc);
+    
     if(curl_result != CURLE_OK) {
         fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(curl_result));
-        fclose(file_desc);
-        curl_easy_cleanup(curl_handle);
         return 0;
     }
     else {
-        fclose(file_desc);
-        curl_easy_cleanup(curl_handle);
         return 1;
     }
 }
@@ -371,7 +376,7 @@ static void parse_feed(xmlDocPtr xml_doc, struct settings_struct *settings) {
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        printf("Missing argument: settings xml\n");
+        printf("Please provide config.xml as an only argument\n");
         return 0;
     }
     
@@ -387,10 +392,16 @@ int main(int argc, char *argv[]) {
     if (get_settings(argv[1], &settings)) {
         if (get_feed(settings.feed, &feed)) {
             if (feed.contents) {
-                xmlDocPtr xml_doc = xmlReadMemory(feed.contents, feed.length, "feed.xml", NULL, 0);
+                xmlDocPtr xml_doc = xmlReadMemory(feed.contents, feed.length,
+                        "feed.xml", NULL, XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
                 free(feed.contents);
-                parse_feed(xml_doc, &settings);
-                xmlFreeDoc(xml_doc);
+                if (xml_doc) {
+                    parse_feed(xml_doc, &settings);
+                    xmlFreeDoc(xml_doc);
+                }
+                else {
+                    fprintf(stderr, "Malformed rss feed\n");
+                }
             }
         }
     }
