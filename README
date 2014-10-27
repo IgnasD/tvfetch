@@ -15,7 +15,7 @@ Compiled binary will appear in bin directory.
 Config file:
 Sample config.xml is provided in sample directory.
 * <feed> - url to torrent tracker's RSS feed
-* <path> - path to watchdir
+* <downloaddir> - where to download torrent files (torrent client's watchdir)
 * <regex> - PCRE of the show title to fetch
 	** First group must match season number.
 	** Second group must match episode number.
