@@ -1,11 +1,11 @@
 #ifndef REMOTE_H
-#define	REMOTE_H
+#define REMOTE_H
 
 #include <stdlib.h>
 
 #include "settings.h"
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -17,8 +17,8 @@ struct data_struct {
 int get_feed(const char *url, struct data_struct *data);
 int download_torrent(const char *url, struct settings_struct *settings);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* REMOTE_H */
+#endif /* REMOTE_H */

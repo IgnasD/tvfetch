@@ -1,10 +1,10 @@
 #ifndef SETTINGS_H
-#define	SETTINGS_H
+#define SETTINGS_H
 
 #include <libxml/tree.h>
 #include <pcre.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -32,8 +32,8 @@ struct settings_struct {
 int get_settings(const char *filename, struct settings_struct *settings);
 void free_settings(struct settings_struct *settings);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* SETTINGS_H */
+#endif /* SETTINGS_H */
