@@ -7,9 +7,9 @@
 
 static size_t write_memory_curl_callback(void *ptr, size_t size, size_t nmemb, void *userdata) {
     struct data_struct *data = (struct data_struct *)userdata;
-    int length = size * nmemb;
+    size_t length = size * nmemb;
     
-    int needed = data->length + length + 1;
+    size_t needed = data->length + length + 1;
     while (needed > data->allocated) {
         void *block = realloc(data->contents, data->allocated+20000);
         if(!block) {
@@ -55,8 +55,7 @@ int get_feed(const char *url, struct data_struct *data) {
 }
 
 static size_t write_file_curl_callback(void *ptr, size_t size, size_t nmemb, void *userdata) {
-    int written = fwrite(ptr, size, nmemb, (FILE *)userdata);
-    return written;
+    return fwrite(ptr, size, nmemb, (FILE *)userdata);
 }
 
 int download_torrent(const char *url, const char *downloaddir, const char *title) {
