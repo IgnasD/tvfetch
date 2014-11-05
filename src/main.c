@@ -117,7 +117,12 @@ int main(int argc, char *argv[]) {
     struct settings_struct settings;
     
     struct data_struct feed;
-    feed.contents = NULL;
+    feed.contents = malloc(200000);
+    if (!feed.contents) {
+        fprintf(stderr, "not enough memory (malloc returned NULL)\n");
+        return 1;
+    }
+    feed.allocated = 200000;
     feed.length = 0;
     
     curl_global_init(CURL_GLOBAL_ALL);

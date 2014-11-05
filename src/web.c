@@ -6,21 +6,25 @@
 #include "web.h"
 
 static size_t write_memory_curl_callback(void *ptr, size_t size, size_t nmemb, void *userdata) {
-    size_t realsize = size * nmemb;
     struct data_struct *data = (struct data_struct *)userdata;
+    int length = size * nmemb;
     
-    void *block = realloc(data->contents, data->length + realsize + 1);
-    if(!block) {
-        fprintf(stderr, "not enough memory (realloc returned NULL)\n");
-        return 0;
+    int needed = data->length + length + 1;
+    while (needed > data->allocated) {
+        void *block = realloc(data->contents, data->allocated+20000);
+        if(!block) {
+            fprintf(stderr, "not enough memory (realloc returned NULL)\n");
+            return 0;
+        }
+        data->contents = block;
+        data->allocated += 20000;
     }
-    data->contents = block;
     
-    memcpy(&(data->contents[data->length]), ptr, realsize);
-    data->length += realsize;
+    memcpy(&(data->contents[data->length]), ptr, length);
+    data->length += length;
     data->contents[data->length] = 0;
     
-    return realsize;
+    return length;
 }
 
 int get_feed(const char *url, struct data_struct *data) {
