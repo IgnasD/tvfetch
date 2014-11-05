@@ -55,17 +55,41 @@ static size_t write_file_curl_callback(void *ptr, size_t size, size_t nmemb, voi
     return written;
 }
 
-int download_torrent(const char *url, struct settings_struct *settings) {
+int download_torrent(const char *url, const char *downloaddir, const char *title) {
     FILE *file_desc;
     CURL *curl_handle;
     CURLcode curl_result;
-    char fullpath[200];
     
-    snprintf(fullpath, 200, "%s%i%i.torrent", settings->downloaddir, settings->new_shows, (int)time(NULL));
+    int dir_len = strlen(downloaddir);
+    char path[dir_len+255+1];
+    strcpy(path, downloaddir);
     
-    file_desc = fopen(fullpath, "wb");
+    char c;
+    int i, j;
+    for (i=0, j=0 ; i<255-8 ; i++, j++) { // ".torrent" 8 chars
+        c = title[i];
+        if (c == 0) {
+            break;
+        }
+        else if (c == '-' || c == '.' || c == '_' ||
+                (c >= '0' && c <= '9') ||
+                (c >= 'A' && c <= 'Z') ||
+                (c >= 'a' && c <= 'z')) {
+            path[dir_len+j] = c;
+        }
+        else if (path[dir_len+j-1] != '_') {
+            path[dir_len+j] = '_';
+        }
+        else {
+            j--;
+        }
+    }
+    path[dir_len+j] = 0;
+    strcat(path, ".torrent");
+    
+    file_desc = fopen(path, "wb");
     if (!file_desc) {
-        fprintf(stderr, "error while preparing file for download\n");
+        fprintf(stderr, "error while preparing file for writing\n");
         return 0;
     }
     

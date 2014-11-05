@@ -26,7 +26,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
     char *substring_end;
     int season, episode;
     xmlNodePtr link_node;
-    xmlChar *link_string;
+    xmlChar *link_string_xml;
     char numbuf[5];
     time_t timestamp;
     struct tm *timestruct;
@@ -62,16 +62,16 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
                     xmlFree(title_string_xml);
                     return 0;
                 }
-                link_string = xmlNodeGetContent(link_node->children);
+                link_string_xml = xmlNodeGetContent(link_node->children);
                 
                 time(&timestamp);
                 timestruct = localtime(&timestamp);
                 strftime(timebuf, 30, "%Y-%m-%d %H:%M:%S %Z", timestruct);
                 printf("[%s] Fetching \"%s\"\n", timebuf, title_string);
                 
-                download_torrent((char *)link_string, settings);
+                download_torrent((char *)link_string_xml, settings->downloaddir, title_string);
                 
-                xmlFree(link_string);
+                xmlFree(link_string_xml);
             }
             
         }

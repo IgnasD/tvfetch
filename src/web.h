@@ -3,8 +3,6 @@
 
 #include <stdlib.h>
 
-#include "settings.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,7 +13,7 @@ struct data_struct {
 };
 
 int get_feed(const char *url, struct data_struct *data);
-int download_torrent(const char *url, struct settings_struct *settings);
+int download_torrent(const char *url, const char *downloaddir, const char *title);
 
 #ifdef __cplusplus
 }
