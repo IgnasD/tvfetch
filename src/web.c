@@ -36,6 +36,7 @@ int get_feed(const char *url, struct data_struct *data) {
     curl_easy_setopt(curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_memory_curl_callback);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)data);
+    curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 20);
     
     curl_result = curl_easy_perform(curl_handle);
     
@@ -101,6 +102,7 @@ int download_torrent(const char *url, const char *downloaddir, const char *title
     curl_easy_setopt(curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_file_curl_callback);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, file_desc);
+    curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 20);
     
     curl_result = curl_easy_perform(curl_handle);
     
