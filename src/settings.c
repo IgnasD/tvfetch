@@ -71,7 +71,6 @@ int get_settings(const char *filename, struct settings_struct *settings) {
     
     xmlDocPtr xml_doc = xmlParseFile(filename);
     if (!xml_doc) {
-        //fprintf(stderr, "Missing or malformed settings file\n");
         return 0;
     }
     settings->xml_doc = xml_doc;

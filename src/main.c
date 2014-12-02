@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
                     xmlFreeDoc(xml_doc);
                 }
                 else {
-                    fprintf(stderr, "Malformed RSS feed\n");
+                    fprintf(stderr, "malformed RSS feed\n");
                 }
             }
         }
