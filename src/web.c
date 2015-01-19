@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <curl/curl.h>
 
@@ -65,12 +66,13 @@ int download_torrent(const char *url, const char *downloaddir, const char *title
     CURLcode curl_result;
     
     int dir_len = strlen(downloaddir);
-    char path[dir_len+255+1];
+    int path_length = dir_len+255+1;
+    char path[path_length], path_part[path_length];
     strcpy(path, downloaddir);
     
     char c;
     int i, j;
-    for (i=0, j=0 ; i<255-8 ; i++, j++) { // ".torrent" 8 chars
+    for (i=0, j=0 ; j<255-13 ; i++, j++) { // ".torrent.part" 13 chars
         c = title[i];
         if (c == 0) {
             break;
@@ -91,7 +93,10 @@ int download_torrent(const char *url, const char *downloaddir, const char *title
     path[dir_len+j] = 0;
     strcat(path, ".torrent");
     
-    file_desc = fopen(path, "wb");
+    strcpy(path_part, path);
+    strcat(path_part, ".part");
+    
+    file_desc = fopen(path_part, "wb");
     if (!file_desc) {
         fprintf(stderr, "error while preparing file for writing\n");
         return 0;
@@ -112,9 +117,11 @@ int download_torrent(const char *url, const char *downloaddir, const char *title
     
     if(curl_result != CURLE_OK) {
         fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(curl_result));
+        unlink(path_part);
         return 0;
     }
     else {
+        rename(path_part, path);
         return 1;
     }
 }
