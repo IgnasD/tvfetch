@@ -5,6 +5,7 @@
 #include <curl/curl.h>
 
 #include "web.h"
+#include "logging.h"
 
 static size_t write_memory_curl_callback(void *ptr, size_t size, size_t nmemb, void *userdata) {
     struct data_struct *data = (struct data_struct *)userdata;
@@ -14,7 +15,7 @@ static size_t write_memory_curl_callback(void *ptr, size_t size, size_t nmemb, v
     while (needed > data->allocated) {
         void *block = realloc(data->contents, data->allocated+20000);
         if(!block) {
-            fprintf(stderr, "not enough memory (realloc returned NULL)\n");
+            logging_error("not enough memory (realloc returned NULL)");
             return 0;
         }
         data->contents = block;
@@ -44,7 +45,7 @@ int get_feed(const char *url, struct data_struct *data) {
     curl_easy_cleanup(curl_handle);
     
     if(curl_result != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(curl_result));
+        logging_error("curl_easy_perform() failed: %s", curl_easy_strerror(curl_result));
         if (data->contents) {
             free(data->contents);
         }
@@ -98,7 +99,7 @@ int download_torrent(const char *url, const char *downloaddir, const char *title
     
     file_desc = fopen(path_part, "wb");
     if (!file_desc) {
-        fprintf(stderr, "error while preparing file for writing\n");
+        logging_error("error while preparing file for writing");
         return 0;
     }
     
@@ -116,7 +117,7 @@ int download_torrent(const char *url, const char *downloaddir, const char *title
     fclose(file_desc);
     
     if(curl_result != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(curl_result));
+        logging_error("curl_easy_perform() failed: %s", curl_easy_strerror(curl_result));
         unlink(path_part);
         return 0;
     }

@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -6,11 +5,12 @@
 
 #include "common.h"
 #include "settings.h"
+#include "logging.h"
 
 static struct show_struct* get_show(xmlNodePtr node) {
     xmlNodePtr xml_node = get_node_by_name(node, "regex");
     if (!xml_node) {
-        fprintf(stderr, "missing /tvfetch/shows/show/regex\n");
+        logging_error("missing /tvfetch/shows/show/regex");
         return NULL;
     }
     xmlChar *string_xml = xmlNodeGetContent(xml_node->children);
@@ -19,18 +19,18 @@ static struct show_struct* get_show(xmlNodePtr node) {
     pcre *regex_pcre = pcre_compile((char *)string_xml, PCRE_CASELESS, &error_pcre, &erroffset_pcre, NULL);
     xmlFree(string_xml);
     if (!regex_pcre) {
-        fprintf(stderr, "pcre_compile failed %s\n", error_pcre);
+        logging_error("pcre_compile failed %s", error_pcre);
         return NULL;
     }
     pcre_extra *regex_pcre_extra = pcre_study(regex_pcre, 0, &error_pcre);
     if(error_pcre) {
-        fprintf(stderr, "pcre_study failed %s\n", error_pcre);
+        logging_error("pcre_study failed %s", error_pcre);
         return NULL;
     }
     
     xml_node = get_node_by_name(node, "season");
     if (!xml_node) {
-        fprintf(stderr, "missing /tvfetch/shows/show/season\n");
+        logging_error("missing /tvfetch/shows/show/season");
         return NULL;
     }
     xmlNodePtr season_node = xml_node->children;
@@ -40,7 +40,7 @@ static struct show_struct* get_show(xmlNodePtr node) {
     
     xml_node = get_node_by_name(node, "episode");
     if (!xml_node) {
-        fprintf(stderr, "missing /tvfetch/shows/show/episode\n");
+        logging_error("missing /tvfetch/shows/show/episode");
         return NULL;
     }
     xmlNodePtr episode_node = xml_node->children;
@@ -77,14 +77,14 @@ int get_settings(const char *filename, struct settings_struct *settings) {
     
     xmlNodePtr xml_node_main = xmlDocGetRootElement(xml_doc);
     if (xmlStrcmp(xml_node_main->name, (const xmlChar *)"tvfetch")) {
-        fprintf(stderr, "missing /tvfetch\n");
+        logging_error("missing /tvfetch");
         return 0;
     }
     xml_node_main = xml_node_main->children;
     
     xmlNodePtr xml_node = get_node_by_name(xml_node_main, "feed");
     if (!xml_node) {
-        fprintf(stderr, "missing /tvfetch/feed\n");
+        logging_error("missing /tvfetch/feed");
         return 0;
     }
     settings->feed_xml = xmlNodeGetContent(xml_node->children);
@@ -92,7 +92,7 @@ int get_settings(const char *filename, struct settings_struct *settings) {
     
     xml_node = get_node_by_name(xml_node_main, "downloaddir");
     if (!xml_node) {
-        fprintf(stderr, "missing /tvfetch/downloaddir\n");
+        logging_error("missing /tvfetch/downloaddir");
         return 0;
     }
     settings->downloaddir_xml = xmlNodeGetContent(xml_node->children);
@@ -100,7 +100,7 @@ int get_settings(const char *filename, struct settings_struct *settings) {
     
     xml_node = get_node_by_name(xml_node_main, "shows");
     if (!xml_node) {
-        fprintf(stderr, "missing /tvfetch/shows\n");
+        logging_error("missing /tvfetch/shows");
         return 0;
     }
     

@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <curl/curl.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -10,11 +9,12 @@
 #include "common.h"
 #include "settings.h"
 #include "web.h"
+#include "logging.h"
 
 static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
     xmlNodePtr title_node = get_node_by_name(node, "title");
     if (!title_node) {
-        fprintf(stderr, "missing /rss/channel/item/title\n");
+        logging_error("missing /rss/channel/item/title");
         return 0;
     }
     xmlChar *title_string_xml = xmlNodeGetContent(title_node->children);
@@ -28,9 +28,6 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
     xmlNodePtr link_node;
     xmlChar *link_string_xml;
     char numbuf[5];
-    time_t timestamp;
-    struct tm *timestruct;
-    char timebuf[30];
     
     for (show = settings->shows; show; show = show->next) {
         if (pcre_exec(show->regex_pcre, show->regex_pcre_extra,
@@ -58,17 +55,13 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
                 
                 link_node = get_node_by_name(node, "link");
                 if (!link_node) {
-                    fprintf(stderr, "missing /rss/channel/item/link\n");
+                    logging_error("missing /rss/channel/item/link");
                     xmlFree(title_string_xml);
                     return 0;
                 }
                 link_string_xml = xmlNodeGetContent(link_node->children);
                 
-                time(&timestamp);
-                timestruct = localtime(&timestamp);
-                strftime(timebuf, 30, "%Y-%m-%d %H:%M:%S %Z", timestruct);
-                printf("[%s] Fetching \"%s\"\n", timebuf, title_string);
-                
+                logging_info("Fetching \"%s\"", title_string);
                 download_torrent((char *)link_string_xml, settings->downloaddir, title_string);
                 
                 xmlFree(link_string_xml);
@@ -87,12 +80,12 @@ static void parse_feed(xmlDocPtr xml_doc, struct settings_struct *settings) {
     
     xml_node = xmlDocGetRootElement(xml_doc);
     if (xmlStrcmp(xml_node->name, (const xmlChar *)"rss")) {
-        fprintf(stderr, "missing /rss\n");
+        logging_error("missing /rss");
         return;
     }
     xml_node = get_node_by_name(xml_node->children, "channel");
     if (!xml_node) {
-        fprintf(stderr, "missing /rss/channel\n");
+        logging_error("missing /rss/channel");
         return;
     }
 
@@ -119,7 +112,7 @@ int main(int argc, char *argv[]) {
     struct data_struct feed;
     feed.contents = malloc(200000);
     if (!feed.contents) {
-        fprintf(stderr, "not enough memory (malloc returned NULL)\n");
+        logging_error("not enough memory (malloc returned NULL)");
         return 1;
     }
     feed.allocated = 200000;
@@ -139,7 +132,7 @@ int main(int argc, char *argv[]) {
                     xmlFreeDoc(xml_doc);
                 }
                 else {
-                    fprintf(stderr, "malformed RSS feed\n");
+                    logging_error("malformed RSS feed");
                 }
             }
         }
