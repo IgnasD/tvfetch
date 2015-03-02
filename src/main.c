@@ -45,16 +45,6 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
             episode = (int) strtol(substring_start, &substring_end, 10);
             
             if (season > show->season || (season == show->season && episode > show->episode)) {
-                show->season = season;
-                snprintf(numbuf, 5, "%d", season);
-                xmlNodeSetContent(show->season_node, (xmlChar *)numbuf);
-                
-                show->episode = episode;
-                snprintf(numbuf, 5, "%d", episode);
-                xmlNodeSetContent(show->episode_node, (xmlChar *)numbuf);
-                
-                settings->new_shows++;
-                
                 link_node = get_node_by_name(node, "link");
                 if (!link_node) {
                     logging_error("missing /rss/channel/item/link");
@@ -64,7 +54,21 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
                 link_string_xml = xmlNodeGetContent(link_node->children);
                 
                 logging_info("Fetching \"%s\"", title_string);
-                download_torrent((char *)link_string_xml, settings->downloaddir, title_string);
+                
+                if (download_torrent((char *)link_string_xml, settings->downloaddir, title_string)) {
+                    show->season = season;
+                    snprintf(numbuf, 5, "%d", season);
+                    xmlNodeSetContent(show->season_node, (xmlChar *)numbuf);
+                    
+                    show->episode = episode;
+                    snprintf(numbuf, 5, "%d", episode);
+                    xmlNodeSetContent(show->episode_node, (xmlChar *)numbuf);
+                    
+                    settings->new_shows++;
+                }
+                else {
+                    logging_error("Couldn't fetch \"%s\"", title_string);
+                }
                 
                 xmlFree(link_string_xml);
             }
