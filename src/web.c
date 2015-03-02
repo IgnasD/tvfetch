@@ -7,19 +7,21 @@
 #include "web.h"
 #include "logging.h"
 
+#define GROWTH_SIZE 50000
+
 static size_t write_memory_curl_callback(void *ptr, size_t size, size_t nmemb, void *userdata) {
     struct data_struct *data = (struct data_struct *)userdata;
     size_t length = size * nmemb;
     
     size_t needed = data->length + length + 1;
     while (needed > data->allocated) {
-        void *block = realloc(data->contents, data->allocated+20000);
+        void *block = realloc(data->contents, data->allocated+GROWTH_SIZE);
         if(!block) {
             logging_error("not enough memory (realloc returned NULL)");
             return 0;
         }
         data->contents = block;
-        data->allocated += 20000;
+        data->allocated += GROWTH_SIZE;
     }
     
     memcpy(&(data->contents[data->length]), ptr, length);

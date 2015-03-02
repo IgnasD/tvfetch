@@ -11,6 +11,8 @@
 #include "web.h"
 #include "logging.h"
 
+#define INITIAL_BUFFER_SIZE 300000
+
 static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
     xmlNodePtr title_node = get_node_by_name(node, "title");
     if (!title_node) {
@@ -110,12 +112,12 @@ int main(int argc, char *argv[]) {
     struct settings_struct settings;
     
     struct data_struct feed;
-    feed.contents = malloc(200000);
+    feed.contents = malloc(INITIAL_BUFFER_SIZE);
     if (!feed.contents) {
         logging_error("not enough memory (malloc returned NULL)");
         return 1;
     }
-    feed.allocated = 200000;
+    feed.allocated = INITIAL_BUFFER_SIZE;
     feed.length = 0;
     
     curl_global_init(CURL_GLOBAL_ALL);
