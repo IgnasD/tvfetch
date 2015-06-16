@@ -13,8 +13,8 @@ struct data_struct {
     size_t length;
 };
 
-int get_feed(const char *url, struct data_struct *data);
-int download_torrent(const char *url, const char *downloaddir, const char *title);
+int download_to_memory(const char *url, struct data_struct *data);
+int download_to_file(const char *url, const char *downloaddir, const char *title, const char *extension);
 
 #ifdef __cplusplus
 }

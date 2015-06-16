@@ -13,7 +13,7 @@
 
 #define INITIAL_BUFFER_SIZE 300000
 
-static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
+static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct feed_struct *feed) {
     xmlNodePtr title_node = get_node_by_name(node, "title");
     if (!title_node) {
         logging_error("missing /rss/channel/item/title");
@@ -53,9 +53,9 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
                 }
                 link_string_xml = xmlNodeGetContent(link_node->children);
                 
-                logging_info("Fetching \"%s\"", title_string);
+                logging_info("Fetching \"%s\" from %s", title_string, feed->name);
                 
-                if (download_torrent((char *)link_string_xml, settings->downloaddir, title_string)) {
+                if (download_to_file((char *)link_string_xml, settings->downloaddir, title_string, "torrent")) {
                     show->season = season;
                     snprintf(numbuf, 5, "%d", season);
                     xmlNodeSetContent(show->season_node, (xmlChar *)numbuf);
@@ -81,7 +81,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings) {
     return 1;
 }
 
-static void parse_feed(xmlDocPtr xml_doc, struct settings_struct *settings) {
+static void parse_rss(xmlDocPtr xml_doc, struct settings_struct *settings, struct feed_struct *feed) {
     xmlNodePtr xml_node;
     
     xml_node = xmlDocGetRootElement(xml_doc);
@@ -99,7 +99,7 @@ static void parse_feed(xmlDocPtr xml_doc, struct settings_struct *settings) {
     while (xml_node) {
         xml_node = get_node_by_name(xml_node, "item");
         if (xml_node) {
-            if (!parse_item(xml_node->children, settings)) {
+            if (!parse_item(xml_node->children, settings, feed)) {
                 return;
             }
             xml_node = xml_node->next;
@@ -115,35 +115,40 @@ int main(int argc, char *argv[]) {
     
     struct settings_struct settings;
     
-    struct data_struct feed;
-    feed.contents = malloc(INITIAL_BUFFER_SIZE);
-    if (!feed.contents) {
+    struct data_struct raw_data;
+    raw_data.contents = malloc(INITIAL_BUFFER_SIZE);
+    if (!raw_data.contents) {
         logging_error("not enough memory (malloc returned NULL)");
         return 1;
     }
-    feed.allocated = INITIAL_BUFFER_SIZE;
-    feed.length = 0;
+    raw_data.allocated = INITIAL_BUFFER_SIZE;
     
     curl_global_init(CURL_GLOBAL_ALL);
     xmlInitParser();
     
     if (get_settings(argv[1], &settings)) {
-        if (get_feed(settings.feed, &feed)) {
-            if (feed.contents) {
-                xmlDocPtr xml_doc = xmlReadMemory(feed.contents, feed.length,
-                        "feed.xml", NULL, XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
-                free(feed.contents);
+        struct feed_struct *feed;
+        for (feed = settings.feeds; feed; feed = feed->next) {
+            raw_data.length = 0;
+            if (!download_to_memory(feed->url, &raw_data)) {
+                continue;
+            }
+            
+            if (raw_data.length) {
+                xmlDocPtr xml_doc = xmlReadMemory(raw_data.contents, raw_data.length,
+                        NULL, NULL, XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
                 if (xml_doc) {
-                    parse_feed(xml_doc, &settings);
+                    parse_rss(xml_doc, &settings, feed);
                     xmlFreeDoc(xml_doc);
                 }
                 else {
-                    logging_error("malformed RSS feed");
+                    logging_error("malformed %s RSS feed", feed->name);
                 }
             }
         }
     }
     
+    free(raw_data.contents);
     free_settings(&settings);
     
     xmlCleanupParser();

@@ -16,7 +16,7 @@ static size_t write_memory_curl_callback(void *ptr, size_t size, size_t nmemb, v
     size_t needed = data->length + length + 1;
     while (needed > data->allocated) {
         void *block = realloc(data->contents, data->allocated+GROWTH_SIZE);
-        if(!block) {
+        if (!block) {
             logging_error("not enough memory (realloc returned NULL)");
             return 0;
         }
@@ -31,7 +31,7 @@ static size_t write_memory_curl_callback(void *ptr, size_t size, size_t nmemb, v
     return length;
 }
 
-int get_feed(const char *url, struct data_struct *data) {
+int download_to_memory(const char *url, struct data_struct *data) {
     CURL *curl_handle;
     CURLcode curl_result;
     
@@ -48,10 +48,6 @@ int get_feed(const char *url, struct data_struct *data) {
     
     if(curl_result != CURLE_OK) {
         logging_error("curl_easy_perform() failed: %s", curl_easy_strerror(curl_result));
-        if (data->contents) {
-            free(data->contents);
-        }
-        data->length = 0;
         return 0;
     }
     else {
@@ -63,7 +59,7 @@ static size_t write_file_curl_callback(void *ptr, size_t size, size_t nmemb, voi
     return fwrite(ptr, size, nmemb, (FILE *)userdata);
 }
 
-int download_torrent(const char *url, const char *downloaddir, const char *title) {
+int download_to_file(const char *url, const char *downloaddir, const char *title, const char *extension) {
     FILE *file_desc;
     CURL *curl_handle;
     CURLcode curl_result;
@@ -74,8 +70,8 @@ int download_torrent(const char *url, const char *downloaddir, const char *title
     strcpy(path, downloaddir);
     
     char c;
-    int i, j;
-    for (i=0, j=0 ; j<255-13 ; i++, j++) { // ".torrent.part" 13 chars
+    int i, j, len = 255-6-strlen(extension);
+    for (i=0, j=0 ; j<len ; i++, j++) {
         c = title[i];
         if (c == 0) {
             break;
@@ -93,8 +89,9 @@ int download_torrent(const char *url, const char *downloaddir, const char *title
             j--;
         }
     }
-    path[dir_len+j] = 0;
-    strcat(path, ".torrent");
+    path[dir_len+j] = '.';
+    path[dir_len+j+1] = 0;
+    strcat(path, extension);
     
     strcpy(path_part, path);
     strcat(path_part, ".part");

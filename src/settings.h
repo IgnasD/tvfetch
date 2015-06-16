@@ -8,6 +8,14 @@
 extern "C" {
 #endif
 
+struct feed_struct {
+    xmlChar *name_xml;
+    char *name;
+    xmlChar *url_xml;
+    char *url;
+    struct feed_struct *next;
+};
+
 struct show_struct {
     pcre *regex_pcre;
     pcre_extra *regex_pcre_extra;
@@ -22,11 +30,10 @@ struct settings_struct {
     const char *filename;
     xmlDocPtr xml_doc;
     int new_shows;
-    xmlChar *feed_xml;
-    char *feed;
     xmlChar *downloaddir_xml;
     char *downloaddir;
     struct show_struct *shows;
+    struct feed_struct *feeds;
 };
 
 int get_settings(const char *filename, struct settings_struct *settings);

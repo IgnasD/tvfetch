@@ -7,6 +7,35 @@
 #include "settings.h"
 #include "logging.h"
 
+static struct feed_struct* get_feed(xmlNodePtr node) {
+    xmlNodePtr xml_node = get_node_by_name(node, "name");
+    if (!xml_node) {
+        logging_error("missing /tvfetch/feeds/feed/name");
+        return NULL;
+    }
+    xmlChar *name_xml = xmlNodeGetContent(xml_node->children);
+    
+    xml_node = get_node_by_name(node, "url");
+    if (!xml_node) {
+        logging_error("missing /tvfetch/feeds/feed/url");
+        return NULL;
+    }
+    xmlChar *url_xml = xmlNodeGetContent(xml_node->children);
+    
+    struct feed_struct *feed = malloc(sizeof(struct feed_struct));
+    if (feed) {
+        feed->name_xml = name_xml;
+        feed->name = (char *)name_xml;
+        feed->url_xml = url_xml;
+        feed->url = (char *)url_xml;
+        feed->next = NULL;
+    }
+    else {
+        logging_error("not enough memory (malloc returned NULL)");
+    }
+    return feed;
+}
+
 static struct show_struct* get_show(xmlNodePtr node) {
     xmlNodePtr xml_node = get_node_by_name(node, "regex");
     if (!xml_node) {
@@ -49,13 +78,18 @@ static struct show_struct* get_show(xmlNodePtr node) {
     xmlFree(string_xml);
     
     struct show_struct *show = malloc(sizeof(struct show_struct));
-    show->regex_pcre = regex_pcre;
-    show->regex_pcre_extra = regex_pcre_extra;
-    show->season = season;
-    show->season_node = season_node;
-    show->episode = episode;
-    show->episode_node = episode_node;
-    show->next = NULL;
+    if (show) {
+        show->regex_pcre = regex_pcre;
+        show->regex_pcre_extra = regex_pcre_extra;
+        show->season = season;
+        show->season_node = season_node;
+        show->episode = episode;
+        show->episode_node = episode_node;
+        show->next = NULL;
+    }
+    else {
+        logging_error("not enough memory (malloc returned NULL)");
+    }
     return show;
 }
 
@@ -63,10 +97,9 @@ int get_settings(const char *filename, struct settings_struct *settings) {
     settings->filename = filename;
     settings->xml_doc = NULL;
     settings->new_shows = 0;
-    settings->feed_xml = NULL;
-    settings->feed = NULL;
     settings->downloaddir_xml = NULL;
     settings->downloaddir = NULL;
+    settings->feeds = NULL;
     settings->shows = NULL;
     
     xmlDocPtr xml_doc = xmlParseFile(filename);
@@ -82,21 +115,36 @@ int get_settings(const char *filename, struct settings_struct *settings) {
     }
     xml_node_main = xml_node_main->children;
     
-    xmlNodePtr xml_node = get_node_by_name(xml_node_main, "feed");
-    if (!xml_node) {
-        logging_error("missing /tvfetch/feed");
-        return 0;
-    }
-    settings->feed_xml = xmlNodeGetContent(xml_node->children);
-    settings->feed = (char *) settings->feed_xml;
-    
-    xml_node = get_node_by_name(xml_node_main, "downloaddir");
+    xmlNodePtr xml_node = get_node_by_name(xml_node_main, "downloaddir");
     if (!xml_node) {
         logging_error("missing /tvfetch/downloaddir");
         return 0;
     }
     settings->downloaddir_xml = xmlNodeGetContent(xml_node->children);
     settings->downloaddir = (char *) settings->downloaddir_xml;
+    
+    xml_node = get_node_by_name(xml_node_main, "feeds");
+    if (!xml_node) {
+        logging_error("missing /tvfetch/feeds");
+        return 0;
+    }
+    
+    xml_node = xml_node->children;
+    struct feed_struct **feed_ptr = &(settings->feeds);
+    struct feed_struct *feed;
+    
+    while (xml_node) {
+        xml_node = get_node_by_name(xml_node, "feed");
+        if (xml_node) {
+            feed = get_feed(xml_node->children);
+            if (!feed) {
+                return 0;
+            }
+            *feed_ptr = feed;
+            feed_ptr = &(feed->next);
+            xml_node = xml_node->next;
+        }
+    }
     
     xml_node = get_node_by_name(xml_node_main, "shows");
     if (!xml_node) {
@@ -125,9 +173,6 @@ int get_settings(const char *filename, struct settings_struct *settings) {
 }
 
 void free_settings(struct settings_struct *settings) {
-    if (settings->feed_xml) {
-        xmlFree(settings->feed_xml);
-    }
     if (settings->downloaddir_xml) {
         xmlFree(settings->downloaddir_xml);
     }
@@ -137,6 +182,20 @@ void free_settings(struct settings_struct *settings) {
         }
         xmlFreeDoc(settings->xml_doc);
     }
+    
+    struct feed_struct *feed, *temp_feed;
+    for (feed = settings->feeds; feed;) {
+        if (feed->name_xml) {
+            xmlFree(feed->name_xml);
+        }
+        if (feed->url_xml) {
+            xmlFree(feed->url_xml);
+        }
+        temp_feed = feed;
+        feed = feed->next;
+        free(temp_feed);
+    }
+    
     struct show_struct *show, *temp_show;
     for (show = settings->shows; show;) {
         if (show->regex_pcre) {
