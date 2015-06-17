@@ -33,6 +33,6 @@ Sample settings.xml is provided in sample directory.
 #### Running
 `./tvfetch /path/to/settings.xml`
 
-Sample cron job:
-`*/15 * * * * /path/to/tvfetch /path/to/settings.xml >> /path/to/fetch.log 2>> /path/to/error.log`
+Sample cron job:  
+`*/15 * * * * /path/to/tvfetch /path/to/settings.xml >> /path/to/fetch.log 2>> /path/to/error.log`  
 Runs every 15 minutes forwarding output to a dedicated log files.
