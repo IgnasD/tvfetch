@@ -16,7 +16,7 @@
 static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct feed_struct *feed) {
     xmlNodePtr title_node = get_node_by_name(node, "title");
     if (!title_node) {
-        logging_error("missing /rss/channel/item/title");
+        logging_error("[%s] Missing /rss/channel/item/title", feed->name);
         return 0;
     }
     xmlChar *title_string_xml = xmlNodeGetContent(title_node->children);
@@ -47,13 +47,13 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
             if (season > show->season || (season == show->season && episode > show->episode)) {
                 link_node = get_node_by_name(node, "link");
                 if (!link_node) {
-                    logging_error("missing /rss/channel/item/link");
+                    logging_error("[%s] Missing /rss/channel/item/link", feed->name);
                     xmlFree(title_string_xml);
                     return 0;
                 }
                 link_string_xml = xmlNodeGetContent(link_node->children);
                 
-                logging_info("Fetching \"%s\" from %s", title_string, feed->name);
+                logging_info("[%s] Fetching \"%s\"", feed->name, title_string);
                 
                 if (download_to_file((char *)link_string_xml, settings->downloaddir, title_string, "torrent")) {
                     show->season = season;
@@ -67,7 +67,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
                     settings->new_shows++;
                 }
                 else {
-                    logging_error("Couldn't fetch \"%s\"", title_string);
+                    logging_error("[%s] Couldn't fetch \"%s\"", feed->name, title_string);
                 }
                 
                 xmlFree(link_string_xml);
@@ -86,12 +86,12 @@ static void parse_rss(xmlDocPtr xml_doc, struct settings_struct *settings, struc
     
     xml_node = xmlDocGetRootElement(xml_doc);
     if (xmlStrcmp(xml_node->name, (const xmlChar *)"rss")) {
-        logging_error("missing /rss");
+        logging_error("[%s] Missing /rss", feed->name);
         return;
     }
     xml_node = get_node_by_name(xml_node->children, "channel");
     if (!xml_node) {
-        logging_error("missing /rss/channel");
+        logging_error("[%s] Missing /rss/channel", feed->name);
         return;
     }
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
     struct data_struct raw_data;
     raw_data.contents = malloc(INITIAL_BUFFER_SIZE);
     if (!raw_data.contents) {
-        logging_error("not enough memory (malloc returned NULL)");
+        logging_error("[MAIN] Not enough memory to allocate initial buffer (malloc returned NULL)");
         return 1;
     }
     raw_data.allocated = INITIAL_BUFFER_SIZE;
@@ -131,6 +131,7 @@ int main(int argc, char *argv[]) {
         for (feed = settings.feeds; feed; feed = feed->next) {
             raw_data.length = 0;
             if (!download_to_memory(feed->url, &raw_data)) {
+                logging_error("[%s] Can't download RSS feed", feed->name);
                 continue;
             }
             
@@ -142,7 +143,7 @@ int main(int argc, char *argv[]) {
                     xmlFreeDoc(xml_doc);
                 }
                 else {
-                    logging_error("malformed %s RSS feed", feed->name);
+                    logging_error("[%s] Malformed RSS feed", feed->name);
                 }
             }
         }

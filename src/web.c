@@ -17,7 +17,7 @@ static size_t write_memory_curl_callback(void *ptr, size_t size, size_t nmemb, v
     while (needed > data->allocated) {
         void *block = realloc(data->contents, data->allocated+GROWTH_SIZE);
         if (!block) {
-            logging_error("not enough memory (realloc returned NULL)");
+            logging_error("[WEB_MEM] Not enough memory (realloc returned NULL)");
             return 0;
         }
         data->contents = block;
@@ -47,7 +47,7 @@ int download_to_memory(const char *url, struct data_struct *data) {
     curl_easy_cleanup(curl_handle);
     
     if(curl_result != CURLE_OK) {
-        logging_error("curl_easy_perform() failed: %s", curl_easy_strerror(curl_result));
+        logging_error("[WEB_MEM] curl_easy_perform() failed: %s", curl_easy_strerror(curl_result));
         return 0;
     }
     else {
@@ -98,7 +98,7 @@ int download_to_file(const char *url, const char *downloaddir, const char *title
     
     file_desc = fopen(path_part, "wb");
     if (!file_desc) {
-        logging_error("error while preparing file for writing");
+        logging_error("[WEB_FILE] Error while preparing file for writing");
         return 0;
     }
     
@@ -116,7 +116,7 @@ int download_to_file(const char *url, const char *downloaddir, const char *title
     fclose(file_desc);
     
     if(curl_result != CURLE_OK) {
-        logging_error("curl_easy_perform() failed: %s", curl_easy_strerror(curl_result));
+        logging_error("[WEB_FILE] curl_easy_perform() failed: %s", curl_easy_strerror(curl_result));
         unlink(path_part);
         return 0;
     }
