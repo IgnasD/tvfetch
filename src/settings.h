@@ -32,8 +32,8 @@ struct settings_struct {
     int new_shows;
     xmlChar *downloaddir_xml;
     char *downloaddir;
-    struct show_struct *shows;
     struct feed_struct *feeds;
+    struct show_struct *shows;
 };
 
 int get_settings(const char *filename, struct settings_struct *settings);
