@@ -44,7 +44,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
             substring_end = &title_string[pcre_ovector[5]];
             episode = (int) strtol(substring_start, &substring_end, 10);
             
-            if (season > show->season || (season == show->season && episode > show->episode)) {
+            if (season > show->season || (season == show->season && episode-show->episode == 1)) {
                 link_node = get_node_by_name(node, "link");
                 if (!link_node) {
                     logging_error("[%s] Missing /rss/channel/item/link", feed->name);
