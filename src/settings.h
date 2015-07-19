@@ -1,6 +1,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include <time.h>
 #include <libxml/tree.h>
 #include <pcre.h>
 
@@ -13,6 +14,7 @@ struct feed_struct {
     char *name;
     xmlChar *url_xml;
     char *url;
+    time_t delay;
     struct feed_struct *next;
 };
 
@@ -23,13 +25,15 @@ struct show_struct {
     xmlNodePtr season_node;
     int episode;
     xmlNodePtr episode_node;
+    time_t seen;
+    xmlNodePtr seen_node;
     struct show_struct *next;
 };
 
 struct settings_struct {
     const char *filename;
     xmlDocPtr xml_doc;
-    int new_shows;
+    int modified;
     xmlChar *downloaddir_xml;
     char *downloaddir;
     struct feed_struct *feeds;

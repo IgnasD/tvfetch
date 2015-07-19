@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <time.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <pcre.h>
@@ -22,12 +23,22 @@ static struct feed_struct* get_feed(xmlNodePtr node) {
     }
     xmlChar *url_xml = xmlNodeGetContent(xml_node->children);
     
+    xml_node = get_node_by_name(node, "delay");
+    if (!xml_node) {
+        logging_error("[Settings] Missing /tvfetch/feeds/feed/delay");
+        return NULL;
+    }
+    xmlChar *string_xml = xmlNodeGetContent(xml_node->children);
+    time_t delay = (time_t) strtol((char *)string_xml, NULL, 10);
+    xmlFree(string_xml);
+    
     struct feed_struct *feed = malloc(sizeof(struct feed_struct));
     if (feed) {
         feed->name_xml = name_xml;
         feed->name = (char *)name_xml;
         feed->url_xml = url_xml;
         feed->url = (char *)url_xml;
+        feed->delay = delay;
         feed->next = NULL;
     }
     else {
@@ -77,6 +88,16 @@ static struct show_struct* get_show(xmlNodePtr node) {
     int episode = (int) strtol((char *)string_xml, NULL, 10);
     xmlFree(string_xml);
     
+    xml_node = get_node_by_name(node, "seen");
+    if (!xml_node) {
+        logging_error("[Settings] Missing /tvfetch/shows/show/seen");
+        return NULL;
+    }
+    xmlNodePtr seen_node = xml_node->children;
+    string_xml = xmlNodeGetContent(seen_node);
+    time_t seen = (time_t) strtol((char *)string_xml, NULL, 10);
+    xmlFree(string_xml);
+    
     struct show_struct *show = malloc(sizeof(struct show_struct));
     if (show) {
         show->regex_pcre = regex_pcre;
@@ -85,6 +106,8 @@ static struct show_struct* get_show(xmlNodePtr node) {
         show->season_node = season_node;
         show->episode = episode;
         show->episode_node = episode_node;
+        show->seen = seen;
+        show->seen_node = seen_node;
         show->next = NULL;
     }
     else {
@@ -96,7 +119,7 @@ static struct show_struct* get_show(xmlNodePtr node) {
 int get_settings(const char *filename, struct settings_struct *settings) {
     settings->filename = filename;
     settings->xml_doc = NULL;
-    settings->new_shows = 0;
+    settings->modified = 0;
     settings->downloaddir_xml = NULL;
     settings->downloaddir = NULL;
     settings->feeds = NULL;
@@ -177,7 +200,7 @@ void free_settings(struct settings_struct *settings) {
         xmlFree(settings->downloaddir_xml);
     }
     if (settings->xml_doc) {
-        if (settings->new_shows) {
+        if (settings->modified) {
             xmlSaveFile(settings->filename, settings->xml_doc);
         }
         xmlFreeDoc(settings->xml_doc);
