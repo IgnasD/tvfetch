@@ -130,6 +130,7 @@ int main(int argc, char *argv[]) {
     
     struct settings_struct settings;
     if (!get_settings(argv[1], &settings)) {
+        free_settings(&settings);
         return 1;
     }
     

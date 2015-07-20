@@ -9,28 +9,58 @@
 #include "logging.h"
 
 static struct feed_struct* get_feed(xmlNodePtr node) {
+    // /tvfetch/feeds/feed/name
     xmlNodePtr xml_node = get_node_by_name(node, "name");
     if (!xml_node) {
         logging_error("[Settings] Missing /tvfetch/feeds/feed/name");
         return NULL;
     }
     xmlChar *name_xml = xmlNodeGetContent(xml_node->children);
+    if (!name_xml) {
+        logging_error("[Settings] Empty /tvfetch/feeds/feed/name");
+        return NULL;
+    }
+    // ---
     
+    // /tvfetch/feeds/feed/url
     xml_node = get_node_by_name(node, "url");
     if (!xml_node) {
+        xmlFree(name_xml);
         logging_error("[Settings] Missing /tvfetch/feeds/feed/url");
         return NULL;
     }
     xmlChar *url_xml = xmlNodeGetContent(xml_node->children);
+    if (!url_xml) {
+        xmlFree(name_xml);
+        logging_error("[Settings] Empty /tvfetch/feeds/feed/url");
+        return NULL;
+    }
+    // ---
     
+    // /tvfetch/feeds/feed/delay
     xml_node = get_node_by_name(node, "delay");
     if (!xml_node) {
+        xmlFree(name_xml);
+        xmlFree(url_xml);
         logging_error("[Settings] Missing /tvfetch/feeds/feed/delay");
         return NULL;
     }
-    xmlChar *string_xml = xmlNodeGetContent(xml_node->children);
-    time_t delay = (time_t) strtol((char *)string_xml, NULL, 10);
-    xmlFree(string_xml);
+    xmlChar *delay_xml = xmlNodeGetContent(xml_node->children);
+    if (!delay_xml) {
+        xmlFree(name_xml);
+        xmlFree(url_xml);
+        logging_error("[Settings] Empty /tvfetch/feeds/feed/delay");
+        return NULL;
+    }
+    time_t delay = (time_t) strtol((char *)delay_xml, NULL, 10);
+    xmlFree(delay_xml);
+    if (delay < 0) {
+        xmlFree(name_xml);
+        xmlFree(url_xml);
+        logging_error("[Settings] /tvfetch/feeds/feed/delay must be >= 0");
+        return NULL;
+    }
+    // ---
     
     struct feed_struct *feed = malloc(sizeof(struct feed_struct));
     if (feed) {
@@ -48,46 +78,93 @@ static struct feed_struct* get_feed(xmlNodePtr node) {
 }
 
 static struct show_struct* get_show(xmlNodePtr node) {
+    // /tvfetch/shows/show/regex
     xmlNodePtr xml_node = get_node_by_name(node, "regex");
     if (!xml_node) {
         logging_error("[Settings] Missing /tvfetch/shows/show/regex");
         return NULL;
     }
     xmlChar *string_xml = xmlNodeGetContent(xml_node->children);
-    const char *error_pcre;
-    int erroffset_pcre;
-    pcre *regex_pcre = pcre_compile((char *)string_xml, PCRE_CASELESS, &error_pcre, &erroffset_pcre, NULL);
-    xmlFree(string_xml);
-    if (!regex_pcre) {
-        logging_error("[Settings] pcre_compile failed: %s", error_pcre);
-        return NULL;
-    }
-    pcre_extra *regex_pcre_extra = pcre_study(regex_pcre, 0, &error_pcre);
-    if(error_pcre) {
-        logging_error("[Settings] pcre_study failed: %s", error_pcre);
+    if (!string_xml) {
+        logging_error("[Settings] Empty /tvfetch/shows/show/regex");
         return NULL;
     }
     
+    const char *error_pcre;
+    int erroffset_pcre;
+    
+    pcre *regex_pcre = pcre_compile((char *)string_xml, PCRE_CASELESS, &error_pcre, &erroffset_pcre, NULL);
+    if (!regex_pcre) {
+        logging_error("[Settings] pcre_compile of %s failed: %s", string_xml, error_pcre);
+        xmlFree(string_xml);
+        return NULL;
+    }
+    
+    pcre_extra *regex_pcre_extra = pcre_study(regex_pcre, 0, &error_pcre);
+    if (regex_pcre_extra && error_pcre) {
+        logging_error("[Settings] pcre_study of %s failed: %s", string_xml, error_pcre);
+        xmlFree(string_xml);
+        pcre_free(regex_pcre);
+        pcre_free(regex_pcre_extra);
+        return NULL;
+    }
+    
+    xmlFree(string_xml);
+    // ---
+    
+    // /tvfetch/shows/show/season
     xml_node = get_node_by_name(node, "season");
     if (!xml_node) {
+        pcre_free(regex_pcre);
+        pcre_free(regex_pcre_extra);
         logging_error("[Settings] Missing /tvfetch/shows/show/season");
         return NULL;
     }
     xmlNodePtr season_node = xml_node->children;
     string_xml = xmlNodeGetContent(season_node);
+    if (!string_xml) {
+        pcre_free(regex_pcre);
+        pcre_free(regex_pcre_extra);
+        logging_error("[Settings] Empty /tvfetch/shows/show/season");
+        return NULL;
+    }
     int season = (int) strtol((char *)string_xml, NULL, 10);
     xmlFree(string_xml);
+    if (season < 0) {
+        pcre_free(regex_pcre);
+        pcre_free(regex_pcre_extra);
+        logging_error("[Settings] /tvfetch/shows/show/season must be >= 0");
+        return NULL;
+    }
+    // ---
     
+    // /tvfetch/shows/show/episode
     xml_node = get_node_by_name(node, "episode");
     if (!xml_node) {
+        pcre_free(regex_pcre);
+        pcre_free(regex_pcre_extra);
         logging_error("[Settings] Missing /tvfetch/shows/show/episode");
         return NULL;
     }
     xmlNodePtr episode_node = xml_node->children;
     string_xml = xmlNodeGetContent(episode_node);
+    if (!string_xml) {
+        pcre_free(regex_pcre);
+        pcre_free(regex_pcre_extra);
+        logging_error("[Settings] Empty /tvfetch/shows/show/episode");
+        return NULL;
+    }
     int episode = (int) strtol((char *)string_xml, NULL, 10);
     xmlFree(string_xml);
+    if (episode < 0) {
+        pcre_free(regex_pcre);
+        pcre_free(regex_pcre_extra);
+        logging_error("[Settings] /tvfetch/shows/show/episode must be >= 0");
+        return NULL;
+    }
+    // ---
     
+    // /tvfetch/shows/show/seen
     xml_node = get_node_by_name(node, "seen");
     if (!xml_node) {
         logging_error("[Settings] Missing /tvfetch/shows/show/seen");
@@ -95,8 +172,21 @@ static struct show_struct* get_show(xmlNodePtr node) {
     }
     xmlNodePtr seen_node = xml_node->children;
     string_xml = xmlNodeGetContent(seen_node);
+    if (!string_xml) {
+        pcre_free(regex_pcre);
+        pcre_free(regex_pcre_extra);
+        logging_error("[Settings] Empty /tvfetch/shows/show/seen");
+        return NULL;
+    }
     time_t seen = (time_t) strtol((char *)string_xml, NULL, 10);
     xmlFree(string_xml);
+    if (seen < 0) {
+        pcre_free(regex_pcre);
+        pcre_free(regex_pcre_extra);
+        logging_error("[Settings] /tvfetch/shows/show/seen must be >= 0");
+        return NULL;
+    }
+    // ---
     
     struct show_struct *show = malloc(sizeof(struct show_struct));
     if (show) {
@@ -127,6 +217,7 @@ int get_settings(const char *filename, struct settings_struct *settings) {
     
     xmlDocPtr xml_doc = xmlParseFile(filename);
     if (!xml_doc) {
+        logging_error("[Settings] Error while parsing %s", filename);
         return 0;
     }
     settings->xml_doc = xml_doc;
@@ -138,13 +229,19 @@ int get_settings(const char *filename, struct settings_struct *settings) {
     }
     xml_node_main = xml_node_main->children;
     
+    // /tvfetch/downloaddir
     xmlNodePtr xml_node = get_node_by_name(xml_node_main, "downloaddir");
     if (!xml_node) {
         logging_error("[Settings] Missing /tvfetch/downloaddir");
         return 0;
     }
     settings->downloaddir_xml = xmlNodeGetContent(xml_node->children);
+    if (!settings->downloaddir_xml) {
+        logging_error("[Settings] Empty /tvfetch/downloaddir");
+        return 0;
+    }
     settings->downloaddir = (char *) settings->downloaddir_xml;
+    // ---
     
     xml_node = get_node_by_name(xml_node_main, "feeds");
     if (!xml_node) {
@@ -152,22 +249,28 @@ int get_settings(const char *filename, struct settings_struct *settings) {
         return 0;
     }
     
+    int test;
+    
+    // /tvfetch/feeds/feed
     xml_node = xml_node->children;
     struct feed_struct **feed_ptr = &settings->feeds;
     struct feed_struct *feed;
     
-    while (xml_node) {
-        xml_node = get_node_by_name(xml_node, "feed");
-        if (xml_node) {
-            feed = get_feed(xml_node->children);
-            if (!feed) {
-                return 0;
-            }
-            *feed_ptr = feed;
-            feed_ptr = &feed->next;
-            xml_node = xml_node->next;
+    for (test = 0; (xml_node = get_node_by_name(xml_node, "feed")); xml_node = xml_node->next) {
+        feed = get_feed(xml_node->children);
+        if (!feed) {
+            return 0;
         }
+        *feed_ptr = feed;
+        feed_ptr = &feed->next;
+        test = 1;
     }
+    
+    if (!test) {
+        logging_error("[Settings] Missing /tvfetch/feeds/feed");
+        return 0;
+    }
+    // ---
     
     xml_node = get_node_by_name(xml_node_main, "shows");
     if (!xml_node) {
@@ -175,22 +278,26 @@ int get_settings(const char *filename, struct settings_struct *settings) {
         return 0;
     }
     
+    // /tvfetch/shows/shows
     xml_node = xml_node->children;
     struct show_struct **show_ptr = &settings->shows;
     struct show_struct *show;
     
-    while (xml_node) {
-        xml_node = get_node_by_name(xml_node, "show");
-        if (xml_node) {
-            show = get_show(xml_node->children);
-            if (!show) {
-                return 0;
-            }
-            *show_ptr = show;
-            show_ptr = &show->next;
-            xml_node = xml_node->next;
+    for (test = 0; (xml_node = get_node_by_name(xml_node, "show")); xml_node = xml_node->next) {
+        show = get_show(xml_node->children);
+        if (!show) {
+            return 0;
         }
+        *show_ptr = show;
+        show_ptr = &show->next;
+        test = 1;
     }
+    
+    if (!test) {
+        logging_error("[Settings] Missing /tvfetch/shows/shows");
+        return 0;
+    }
+    // ---
     
     return 1;
 }
