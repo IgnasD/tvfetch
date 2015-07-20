@@ -153,7 +153,7 @@ int get_settings(const char *filename, struct settings_struct *settings) {
     }
     
     xml_node = xml_node->children;
-    struct feed_struct **feed_ptr = &(settings->feeds);
+    struct feed_struct **feed_ptr = &settings->feeds;
     struct feed_struct *feed;
     
     while (xml_node) {
@@ -164,7 +164,7 @@ int get_settings(const char *filename, struct settings_struct *settings) {
                 return 0;
             }
             *feed_ptr = feed;
-            feed_ptr = &(feed->next);
+            feed_ptr = &feed->next;
             xml_node = xml_node->next;
         }
     }
@@ -176,7 +176,7 @@ int get_settings(const char *filename, struct settings_struct *settings) {
     }
     
     xml_node = xml_node->children;
-    struct show_struct **show_ptr = &(settings->shows);
+    struct show_struct **show_ptr = &settings->shows;
     struct show_struct *show;
     
     while (xml_node) {
@@ -187,7 +187,7 @@ int get_settings(const char *filename, struct settings_struct *settings) {
                 return 0;
             }
             *show_ptr = show;
-            show_ptr = &(show->next);
+            show_ptr = &show->next;
             xml_node = xml_node->next;
         }
     }

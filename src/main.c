@@ -12,8 +12,6 @@
 #include "web.h"
 #include "logging.h"
 
-#define INITIAL_BUFFER_SIZE 300000
-
 static time_t current_time;
 
 static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct feed_struct *feed) {
@@ -53,7 +51,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
         
         if (feed->delay && !show->seen) {
             logging_info("[%s] Delayed \"%s\" for %lds", feed->name, title_string, feed->delay);
-            time(&show->seen);
+            show->seen = current_time;
             snprintf(numbuf, sizeof(numbuf), "%ld", show->seen);
             xmlNodeSetContent(show->seen_node, (xmlChar *)numbuf);
             settings->modified = 1;
@@ -68,10 +66,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
         }
         link_string_xml = xmlNodeGetContent(link_node->children);
         
-        if (!download_to_file((char *)link_string_xml, settings->downloaddir, title_string, "torrent")) {
-            logging_error("[%s] Couldn't fetch \"%s\"", feed->name, title_string);
-        }
-        else {
+        if (download_to_file((char *)link_string_xml, settings->downloaddir, title_string, "torrent")) {
             logging_info("[%s] Fetching \"%s\"", feed->name, title_string);
             
             show->season = season;
@@ -86,6 +81,9 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
             xmlNodeSetContent(show->seen_node, (xmlChar *)"0");
             
             settings->modified = 1;
+        }
+        else {
+            logging_error("[%s] Couldn't fetch \"%s\"", feed->name, title_string);
         }
         
         xmlFree(link_string_xml);
@@ -131,6 +129,9 @@ int main(int argc, char *argv[]) {
     time(&current_time);
     
     struct settings_struct settings;
+    if (!get_settings(argv[1], &settings)) {
+        return 1;
+    }
     
     struct data_struct raw_data;
     raw_data.contents = malloc(INITIAL_BUFFER_SIZE);
@@ -143,26 +144,27 @@ int main(int argc, char *argv[]) {
     curl_global_init(CURL_GLOBAL_ALL);
     xmlInitParser();
     
-    if (get_settings(argv[1], &settings)) {
-        struct feed_struct *feed;
-        for (feed = settings.feeds; feed; feed = feed->next) {
-            raw_data.length = 0;
-            if (!download_to_memory(feed->url, &raw_data)) {
-                logging_error("[%s] Can't download RSS feed", feed->name);
-                continue;
+    struct feed_struct *feed;
+    for (feed = settings.feeds; feed; feed = feed->next) {
+        raw_data.length = 0;
+        if (!download_to_memory(feed->url, &raw_data)) {
+            logging_error("[%s] Can't download RSS feed", feed->name);
+            continue;
+        }
+        
+        if (raw_data.length) {
+            xmlDocPtr xml_doc = xmlReadMemory(raw_data.contents, raw_data.length,
+                    NULL, NULL, XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
+            if (xml_doc) {
+                parse_rss(xml_doc, &settings, feed);
+                xmlFreeDoc(xml_doc);
             }
-            
-            if (raw_data.length) {
-                xmlDocPtr xml_doc = xmlReadMemory(raw_data.contents, raw_data.length,
-                        NULL, NULL, XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
-                if (xml_doc) {
-                    parse_rss(xml_doc, &settings, feed);
-                    xmlFreeDoc(xml_doc);
-                }
-                else {
-                    logging_error("[%s] Malformed RSS feed", feed->name);
-                }
+            else {
+                logging_error("[%s] Malformed RSS feed", feed->name);
             }
+        }
+        else {
+            logging_error("[%s] Empty RSS feed", feed->name);
         }
     }
     

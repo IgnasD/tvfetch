@@ -3,6 +3,9 @@
 
 #include <stdlib.h>
 
+#define INITIAL_BUFFER_SIZE 300000
+#define GROWTH_SIZE 50000
+
 #ifdef __cplusplus
 extern "C" {
 #endif

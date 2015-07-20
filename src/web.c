@@ -7,8 +7,6 @@
 #include "web.h"
 #include "logging.h"
 
-#define GROWTH_SIZE 50000
-
 static size_t write_memory_curl_callback(void *ptr, size_t size, size_t nmemb, void *userdata) {
     struct data_struct *data = (struct data_struct *)userdata;
     size_t length = size * nmemb;
