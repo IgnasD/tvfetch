@@ -5,10 +5,17 @@
         <feed>
             <name>example1</name>
             <url>http://example.com/rss.php</url>
+            <delay>0</delay>
         </feed>
         <feed>
             <name>example2</name>
             <url>http://example.org/rss.php</url>
+            <delay>0</delay>
+        </feed>
+        <feed>
+            <name>example3</name>
+            <url>http://example.net/rss.php</url>
+            <delay>1800</delay>
         </feed>
     </feeds>
     <shows>
@@ -16,11 +23,13 @@
             <regex>^My.Fav.Show.S(\d{2})E(\d{2}).+1080p.WEB.DL</regex>
             <season>1</season>
             <episode>5</episode>
+            <seen>0</seen>
         </show>
         <show>
             <regex>^That.New.Show.S(\d{2})E(\d{2}).+720p.HDTV</regex>
             <season>0</season>
             <episode>0</episode>
+            <seen>0</seen>
         </show>
     </shows>
 </tvfetch>
