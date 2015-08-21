@@ -1,5 +1,5 @@
-#ifndef SETTINGS_H
-#define SETTINGS_H
+#ifndef SESSION_H
+#define SESSION_H
 
 #include <time.h>
 #include <libxml/tree.h>
@@ -30,21 +30,22 @@ struct show_struct {
     struct show_struct *next;
 };
 
-struct settings_struct {
+struct session_struct {
     const char *filename;
     xmlDocPtr xml_doc;
     int modified;
-    xmlChar *downloaddir_xml;
-    char *downloaddir;
+    xmlChar *target_xml;
+    char *target;
     struct feed_struct *feeds;
     struct show_struct *shows;
 };
 
-int get_settings(const char *filename, struct settings_struct *settings);
-void free_settings(struct settings_struct *settings);
+int session_load(const char *filename, struct session_struct *settings);
+void session_save(struct session_struct *settings);
+void session_free(struct session_struct *settings);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SETTINGS_H */
+#endif /* SESSION_H */

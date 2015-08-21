@@ -96,7 +96,7 @@ int download_to_file(const char *url, const char *downloaddir, const char *title
     
     file_desc = fopen(path_part, "wb");
     if (!file_desc) {
-        logging_error("[WEB_FILE] Error while preparing file for writing");
+        logging_error("[WEB_FILE] Error while preparing file \"%s\" for writing", path_part);
         return 0;
     }
     

@@ -8,13 +8,13 @@
 #include <pcre.h>
 
 #include "common.h"
-#include "settings.h"
+#include "session.h"
 #include "web.h"
 #include "logging.h"
 
 static time_t current_time;
 
-static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct feed_struct *feed) {
+static int parse_item(xmlNodePtr node, struct session_struct *session, struct feed_struct *feed) {
     xmlNodePtr title_node = get_node_by_name(node, "title");
     if (!title_node) {
         logging_error("[%s] Missing /rss/channel/item/title", feed->name);
@@ -30,7 +30,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
     xmlNodePtr link_node;
     xmlChar *link_string_xml;
     
-    for (show = settings->shows; show; show = show->next) {
+    for (show = session->shows; show; show = show->next) {
         if (current_time-show->seen < feed->delay) continue;
         
         if (pcre_exec(show->regex_pcre, show->regex_pcre_extra,
@@ -54,7 +54,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
             show->seen = current_time;
             snprintf(numbuf, sizeof(numbuf), "%ld", show->seen);
             xmlNodeSetContent(show->seen_node, (xmlChar *)numbuf);
-            settings->modified = 1;
+            session->modified = 1;
             continue;
         }
         
@@ -66,7 +66,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
         }
         link_string_xml = xmlNodeGetContent(link_node->children);
         
-        if (download_to_file((char *)link_string_xml, settings->downloaddir, title_string, "torrent")) {
+        if (download_to_file((char *)link_string_xml, session->target, title_string, "torrent")) {
             logging_info("[%s] Fetching \"%s\"", feed->name, title_string);
             
             show->season = season;
@@ -80,7 +80,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
             show->seen = 0;
             xmlNodeSetContent(show->seen_node, (xmlChar *)"0");
             
-            settings->modified = 1;
+            session->modified = 1;
         }
         else {
             logging_error("[%s] Couldn't fetch \"%s\"", feed->name, title_string);
@@ -94,7 +94,7 @@ static int parse_item(xmlNodePtr node, struct settings_struct *settings, struct 
     return 1;
 }
 
-static void parse_rss(xmlDocPtr xml_doc, struct settings_struct *settings, struct feed_struct *feed) {
+static void parse_rss(xmlDocPtr xml_doc, struct session_struct *session, struct feed_struct *feed) {
     xmlNodePtr xml_node;
     
     xml_node = xmlDocGetRootElement(xml_doc);
@@ -112,7 +112,7 @@ static void parse_rss(xmlDocPtr xml_doc, struct settings_struct *settings, struc
     while (xml_node) {
         xml_node = get_node_by_name(xml_node, "item");
         if (xml_node) {
-            if (!parse_item(xml_node->children, settings, feed)) {
+            if (!parse_item(xml_node->children, session, feed)) {
                 return;
             }
             xml_node = xml_node->next;
@@ -122,15 +122,15 @@ static void parse_rss(xmlDocPtr xml_doc, struct settings_struct *settings, struc
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        printf("Please provide settings.xml as an only argument\n");
+        printf("Please provide session.xml as an only argument\n");
         return 0;
     }
     
     time(&current_time);
     
-    struct settings_struct settings;
-    if (!get_settings(argv[1], &settings)) {
-        free_settings(&settings);
+    struct session_struct session;
+    if (!session_load(argv[1], &session)) {
+        session_free(&session);
         return 1;
     }
     
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
     xmlInitParser();
     
     struct feed_struct *feed;
-    for (feed = settings.feeds; feed; feed = feed->next) {
+    for (feed = session.feeds; feed; feed = feed->next) {
         raw_data.length = 0;
         if (!download_to_memory(feed->url, &raw_data)) {
             logging_error("[%s] Can't download RSS feed", feed->name);
@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
             xmlDocPtr xml_doc = xmlReadMemory(raw_data.contents, raw_data.length,
                     NULL, NULL, XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
             if (xml_doc) {
-                parse_rss(xml_doc, &settings, feed);
+                parse_rss(xml_doc, &session, feed);
                 xmlFreeDoc(xml_doc);
             }
             else {
@@ -170,7 +170,8 @@ int main(int argc, char *argv[]) {
     }
     
     free(raw_data.contents);
-    free_settings(&settings);
+    session_save(&session);
+    session_free(&session);
     
     xmlCleanupParser();
     curl_global_cleanup();
