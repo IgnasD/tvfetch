@@ -101,7 +101,7 @@ static struct show_struct* get_show(xmlNodePtr node) {
     }
     
     pcre_extra *regex_pcre_extra = pcre_study(regex_pcre, 0, &error_pcre);
-    if (regex_pcre_extra && error_pcre) {
+    if (!regex_pcre_extra && error_pcre) {
         logging_error("[Session] pcre_study of %s failed: %s", string_xml, error_pcre);
         xmlFree(string_xml);
         pcre_free(regex_pcre);
