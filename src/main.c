@@ -42,12 +42,14 @@ static int parse_item(xmlNodePtr node, struct session_struct *session, struct fe
         season = (int) strtol(substring_start, &substring_end, 10);
         
         if (season < show->season) continue;
+        if (season > show->season+1) continue;
         
         substring_start = &title_string[pcre_ovector[4]];
         substring_end = &title_string[pcre_ovector[5]];
         episode = (int) strtol(substring_start, &substring_end, 10);
         
-        if (season == show->season && episode-show->episode != 1) continue;
+        if (season == show->season && episode != show->episode+1) continue;
+        if (season == show->season+1 && episode != 1) continue;
         
         if (feed->delay && !show->seen) {
             logging_info("[%s] Delayed \"%s\" for %lds", feed->name, title_string, feed->delay);
