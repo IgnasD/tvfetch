@@ -37,6 +37,7 @@ struct session_struct {
     xmlChar *target_xml;
     char *target;
     struct feed_struct *feeds;
+    size_t feed_name_max_len;
     struct show_struct *shows;
 };
 

@@ -52,7 +52,7 @@ static int parse_item(xmlNodePtr node, struct session_struct *session, struct fe
         if (season == show->season+1 && episode != 1) continue;
         
         if (feed->delay && !show->seen) {
-            logging_info("[%s] Delayed \"%s\" for %lds", feed->name, title_string, feed->delay);
+            logging_info("%*s | Delay %5lds | %s", session->feed_name_max_len, feed->name, feed->delay, title_string);
             show->seen = current_time;
             snprintf(numbuf, sizeof(numbuf), "%ld", show->seen);
             xmlNodeSetContent(show->seen_node, (xmlChar *)numbuf);
@@ -69,7 +69,7 @@ static int parse_item(xmlNodePtr node, struct session_struct *session, struct fe
         link_string_xml = xmlNodeGetContent(link_node->children);
         
         if (download_to_file((char *)link_string_xml, session->target, title_string, "torrent")) {
-            logging_info("[%s] Fetching \"%s\"", feed->name, title_string);
+            logging_info("%*s |     Fetching | %s", session->feed_name_max_len, feed->name, title_string);
             
             show->season = season;
             snprintf(numbuf, sizeof(numbuf), "%d", season);

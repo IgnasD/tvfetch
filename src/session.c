@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -255,6 +256,7 @@ int session_load(const char *filename, struct session_struct *session) {
     xml_node = xml_node->children;
     struct feed_struct **feed_ptr = &session->feeds;
     struct feed_struct *feed;
+    session->feed_name_max_len = 0;
     
     for (test = 0; (xml_node = get_node_by_name(xml_node, "feed")); xml_node = xml_node->next) {
         feed = get_feed(xml_node->children);
@@ -263,6 +265,10 @@ int session_load(const char *filename, struct session_struct *session) {
         }
         *feed_ptr = feed;
         feed_ptr = &feed->next;
+        size_t name_len = strlen(feed->name);
+        if (name_len > session->feed_name_max_len) {
+            session->feed_name_max_len = name_len;
+        }
         test = 1;
     }
     
